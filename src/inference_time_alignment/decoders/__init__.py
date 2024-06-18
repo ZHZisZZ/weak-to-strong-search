@@ -1,0 +1,2 @@
+from src.inference_time_alignment.decoders.cbs import CBSPosthocGenerationMixin
+from src.inference_time_alignment.decoders.eft import EFTPosthocGenerationMixin

@@ -1,0 +1,9 @@
+transformers==4.41.2
+accelerate==0.31.0
+datasets==2.20.0
+sentencepiece==0.2.0
+tyro==0.6.0
+alpaca-eval==0.6.2
+pyyaml==6.0.1
+trl==0.9.4
+wandb=0.17.1

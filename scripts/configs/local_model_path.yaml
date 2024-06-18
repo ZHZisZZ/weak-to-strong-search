@@ -1,0 +1,5 @@
+# Map official model names to their local paths if you save models locally.
+
+# Example:
+# meta-llama/Meta-Llama-3-8B-Instruct: ~/models/Meta-Llama-3-8B-Instruct
+# meta-llama/Meta-Llama-3-70B-Instruct: ~/models//Meta-Llama-3-70B-Instruct

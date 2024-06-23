@@ -3,11 +3,11 @@
 This directory contains code and instructions for using tuned and untuned gpt2s (124M param) to control larger models to write positive movie reviews.
 
 # Setup
-We have created a synthetic preference dataset of movie reviews, [`ZHZisZZ/imdb_preference`]([DPO](https://arxiv.org/abs/2305.18290)). Prompts $x$ are truncated [`imdb`](stanfordnlp/imdb) movie review (e.g., "I really") and responses $y_1, y_2$ are sampled from [`lvwerra/gpt2-imdb`](https://huggingface.co/lvwerra/gpt2-imdb). We use the logit difference between positive and negative labels from [`lvwerra/distilbert-imdb`](https://huggingface.co/datasets/ZHZisZZ/imdb_preference) as the gold reward model: $r_{\text{gold}}(x, y)= \log p(\text{positive} \mid x, y) - \log p(\text{negative} \mid x, y)$. This reward model then encourages positive movie review continuations. Preferences labels are collected from this gold reward model assuming the BT preference distribution: $p(y_1 \succ y_2 \mid x) = \sigma (r_{\text{gold}}(x, y_1) - r_{\text{gold}}(x, y_2))$.
+We have created a synthetic preference dataset of movie reviews, [`ZHZisZZ/imdb_preference`]([DPO](https://arxiv.org/abs/2305.18290)). Prompts $x$ are truncated [`imdb`](stanfordnlp/imdb) movie review (e.g., "I really") and responses $y_1, y_2$ are sampled continuations (e.g., "like ...", "hate ...") from [`lvwerra/gpt2-imdb`](https://huggingface.co/lvwerra/gpt2-imdb). We use the logit difference between positive and negative labels from [`lvwerra/distilbert-imdb`](https://huggingface.co/datasets/ZHZisZZ/imdb_preference) as the gold reward model to encourage positive continuations: $r_{\text{gold}}(x, y)= \log p(\text{positive} \mid x, y) - \log p(\text{negative} \mid x, y)$. Preferences labels are collected from this gold reward model assuming the BT preference distribution: $p(y_1 \succ y_2 \mid x) = \sigma (r_{\text{gold}}(x, y_1) - r_{\text{gold}}(x, y_2))$.
 
 
 # Tune a Positive `gpt2` Model
-To obtain a positive `gpt2` model, we demonstrate using [DPO](https://arxiv.org/abs/2305.18290) to tune [`lvwerra/gpt2-imdb`](https://huggingface.co/lvwerra/gpt2-imdb) on one GPU for more positive generation:
+To obtain a positive `gpt2` model, we can use [DPO](https://arxiv.org/abs/2305.18290) to tune [`lvwerra/gpt2-imdb`](https://huggingface.co/lvwerra/gpt2-imdb) for positive continuation:
 
 ```bash
 python scripts/controlled_sentiment_generation/dpo.py \
@@ -61,7 +61,7 @@ The trained models will be saved to `ckpt/gpt2-imdb-dpo`. We refer to this tuned
 
 # Guided Generation
 
-Then, we demonstrate how to use tuned and untuned gpt2s (`ckpt/gpt2-imdb-dpo`, [`lvwerra/gpt2-imdb`](https://huggingface.co/lvwerra/gpt2-imdb)) (124M param) to guide a larger model from the GPT-2 family, [openai-community/gpt2-xl](https://huggingface.co/openai-community/gpt2-xl) (1.5B params), in writing positive movie reviews. The guided models continue the review prefixes (prompts) from the ([`ZHZisZZ/imdb_preference`]([DPO](https://arxiv.org/abs/2305.18290))) test split (200 prompts). You can use any pre-trained language model supported by [`transformers`](https://github.com/huggingface/transformers), e.g., `--model_name=meta-llama/Meta-Llama-3-8B-Instruct`.
+Then, we demonstrate how to use tuned and untuned gpt2s (`ckpt/gpt2-imdb-dpo`, [`lvwerra/gpt2-imdb`](https://huggingface.co/lvwerra/gpt2-imdb)) (124M param) to guide a larger model from the GPT-2 family, [openai-community/gpt2-xl](https://huggingface.co/openai-community/gpt2-xl) (1.5B params), in writing positive movie reviews. The guided model continues the truncated reviews from the ([`ZHZisZZ/imdb_preference`]([DPO](https://arxiv.org/abs/2305.18290))) test split. You can use any pre-trained language model supported by [`transformers`](https://github.com/huggingface/transformers), e.g., `--model_name=meta-llama/Meta-Llama-3-8B-Instruct`.
 
 - CBS (Chunk-level Beam Search) with W, K, L = 4, 4, 5:
 
@@ -130,7 +130,7 @@ meta-llama/Meta-Llama-3-70B-Instruct: ~/models//Meta-Llama-3-70B-Instruct
 <details>
 <summary>Out of GPU memory.</summary>
 
-To infer large (70B) models that don't fit on a single GPU, run the code as is with multiple GPUs or 4-bit quantization. For example:
+To infer a large (70B) model that doesn't fit on a single GPU, run the code as is with multiple GPUs or 4-bit quantization. For example:
 
 ```sh
 # Infer on one single GPU
@@ -142,7 +142,7 @@ CUDA_VISIBLE_DEVICES=0 python ... --load_in_4bit=True
 # Infer on four GPUs
 CUDA_VISIBLE_DEVICES=0,1,2,3 python ...
 
-# Infer on Four GPUs with 4-bit quant
+# Infer on four GPUs with 4-bit quant
 CUDA_VISIBLE_DEVICES=0,1,2,3 python ... --load_in_4bit=True
 ```
 </details>

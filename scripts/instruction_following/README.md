@@ -4,14 +4,14 @@ This directory contains code and instructions for using off-the-shelf small/weak
 
 ## Supported Models
 
-The small/weak model pairs we current support (in the order of tuned and untuned):
+The small/weak model pairs we currently support (in the order of tuned and untuned):
 - Zephyr guidance: [`HuggingFaceH4/zephyr-7b-beta`](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta), [`HuggingFaceH4/mistral-7b-sft-beta`](https://huggingface.co/HuggingFaceH4/mistral-7b-sft-beta)
 - Starling guidance: [`berkeley-nest/Starling-LM-7B-alpha`](https://huggingface.co/berkeley-nest/Starling-LM-7B-alpha), [`openchat/openchat_3.5`](https://huggingface.co/openchat/openchat_3.5) 
 - Tulu guidance: [`allenai/tulu-2-dpo-7b`](https://huggingface.co/allenai/tulu-2-dpo-7b), [`allenai/tulu-2-7b`](https://huggingface.co/allenai/tulu-2-7b)
 
 To add customized model pairs, see `get_scorer` function from [`scripts/instruction_following/utils/utils.py`](https://github.com/ZHZisZZ/weak-to-strong-search/blob/main/scripts/instruction_following/utils/utils.py) function.
 
-The large/strong base models we current support:
+The large/strong base models we currently support:
 - Llama-2 series: [`meta-llama/Llama-2-7b-chat-hf`](https://huggingface.co/meta-llama/Llama-2-7b-chat-hf), [`meta-llama/Llama-2-13b-chat-hf`](https://huggingface.co/meta-llama/Llama-2-13b-chat-hf), [`meta-llama/Llama-2-70b-chat-hf`](https://huggingface.co/meta-llama/Llama-2-70b-chat-hf)
 - Llama-3 series: [`meta-llama/Meta-Llama-3-8B-Instruct`](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct), [`meta-llama/Meta-Llama-3-70B-Instruct`](https://huggingface.co/meta-llama/Meta-Llama-3-70B-Instruct)
 
@@ -20,9 +20,9 @@ To add customized base model, modify `get_chat_prompt_template` function from [`
 
 ## Guided Generation
 
-We demonstrate testing guided models on [AlpacaEval](https://github.com/tatsu-lab/alpaca_eval). We steer [`meta-llama/Llama-2-13b-chat-hf`](https://huggingface.co/meta-llama/Llama-2-13b-chat-hf) with Zephyr guidance ([`HuggingFaceH4/zephyr-7b-beta`](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta), [`HuggingFaceH4/mistral-7b-sft-beta`](https://huggingface.co/HuggingFaceH4/mistral-7b-sft-beta)).
+We demonstrate how to test guided models on [AlpacaEval](https://github.com/tatsu-lab/alpaca_eval). 
 
-To generate on a subset of prompts from [AlpacaEval](https://github.com/tatsu-lab/alpaca_eval) (1/32 * 805), run:
+Here are examples of steering [`meta-llama/Llama-2-13b-chat-hf`](https://huggingface.co/meta-llama/Llama-2-13b-chat-hf) under Zephyr guidance ([`HuggingFaceH4/zephyr-7b-beta`](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta), [`HuggingFaceH4/mistral-7b-sft-beta`](https://huggingface.co/HuggingFaceH4/mistral-7b-sft-beta)) on a subset of prompts from [AlpacaEval](https://github.com/tatsu-lab/alpaca_eval) (1/32 * 805):
 
 - CBS (Chunk-level Beam Search) with W, K, L = 2, 2, 30:
 
@@ -126,7 +126,7 @@ meta-llama/Meta-Llama-3-70B-Instruct: ~/models//Meta-Llama-3-70B-Instruct
 <details>
 <summary>Out of GPU memory.</summary>
 
-To infer large (70B) models that don't fit on a single GPU, run the code as is with multiple GPUs or 4-bit quantization. For example:
+To infer a large (70B) model that doesn't fit on a single GPU, run the code as is with multiple GPUs or 4-bit quantization. For example:
 
 ```sh
 # Infer on one single GPU
@@ -138,7 +138,7 @@ CUDA_VISIBLE_DEVICES=0 python ... --load_in_4bit=True
 # Infer on four GPUs
 CUDA_VISIBLE_DEVICES=0,1,2,3 python ...
 
-# Infer on Four GPUs with 4-bit quant
+# Infer on four GPUs with 4-bit quant
 CUDA_VISIBLE_DEVICES=0,1,2,3 python ... --load_in_4bit=True
 ```
 </details>

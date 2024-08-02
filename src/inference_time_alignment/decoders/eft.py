@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Union
 
 import torch
 from transformers import PreTrainedModel, GenerationMixin
@@ -8,27 +8,20 @@ from transformers import PreTrainedModel, GenerationMixin
 @dataclass(kw_only=True)
 class EFTPosthocGenerationMixin(GenerationMixin):
     """
-    EFT: Emulated Fine-Tuning (https://arxiv.org/abs/2310.12962).
-
-    A wrapper class that decodes `base`, `tune_r`, and `base_r` in parallel and combines their distributions using linear weights.
+    A wrapper class that decodes base, tune_r, and base_r in parallel and combines their distributions using linear weights.
     The resulting sampling distribution is:
     softmax{ logp_{base} + sum_{i=1}^N (w_i * (logp_{tune_r[i]} - logp_{base_r})) }
 
-    Parameters:
-        base (`PreTrainedModel`):
-            The base language model to steer at inference time.
-        tune_r (`list(PreTrainedModel)`):
-            The models fine-tuned from `base_r`.
-        base_r (`PreTrainedModel`, *optional*, defaults to `base`):
-            The pre-traine model for `tune-r`, default to `base` if unspecified.
-        `w`: (`list(float)`)
-            The linear weights for combining the implicit reward models:
-            r = sum_{i=1}^N (w_i * (logp_{tune_r[i]} - logp_{base_r})).
+    Attributes:
+        base: (PreTrainedModel) -- The base language model to steer at inference time.
+        tune_r: (Union[List[PreTrainedModel], PreTrainedModel]) -- The models fine-tuned from base_r.
+        base_r: (Optional[PreTrainedModel], defaults to base) -- The pre-trained model for tune-r, default to base if unspecified.
+        w: (Union[List[float], float]) -- The linear weights for combining the implicit reward models.
     """
-    base:     PreTrainedModel
-    tune_r:   List[PreTrainedModel] | PreTrainedModel
-    base_r:   Optional[PreTrainedModel] = None
-    w:        List[float] | float
+    base: PreTrainedModel
+    tune_r: Union[List[PreTrainedModel], PreTrainedModel]
+    base_r: Optional[PreTrainedModel] = None
+    w: Union[List[float], float]
 
     def __post_init__(self):
         if not isinstance(self.base, list):  self.tune_r = [self.tune_r]
@@ -90,3 +83,80 @@ class EFTPosthocGenerationMixin(GenerationMixin):
             'base_r': base_r_outputs.past_key_values,
         }
         return outputs
+
+
+if __name__ == "__main__":
+    # unit test
+    import torch
+    from transformers import AutoTokenizer, AutoModelForCausalLM
+    from src.inference_time_alignment.models import PrefixPreTrainedWrapper
+
+    # Load the tokenizer and model
+    model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-2-7b-hf", torch_dtype=torch.bfloat16)
+    tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-hf", torch_dtype=torch.bfloat16)
+    tokenizer.padding_side = "left"
+    tokenizer.pad_token_id = tokenizer.eos_token_id
+
+    prefix_a = "This is a world governed by angry bananas. "
+    prefix_b = "This is a world governed by zhanhui zhou. "
+    # Define some example input texts
+    input_texts = [
+        "Once upon a time in a faraway land, ",
+        "In a galaxy far, ",
+        "In the beginning, "
+        "12345"
+    ]
+    generate_kwargs = {
+        "max_new_tokens": 50,
+        "do_sample": False,
+    }
+
+    inputs = tokenizer([prefix_a + input_text for input_text in input_texts], return_tensors="pt", padding=True)
+    with torch.no_grad():
+        outputs = model.generate(
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+            **generate_kwargs,
+        )
+    outputs_a = outputs[:, -generate_kwargs["max_new_tokens"]:]
+
+    inputs = tokenizer([prefix_b + input_text for input_text in input_texts], return_tensors="pt", padding=True)
+    with torch.no_grad():
+        outputs = model.generate(
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+            **generate_kwargs,
+        )
+    outputs_b = outputs[:, -generate_kwargs["max_new_tokens"]:]
+
+
+    eft_model = EFTPosthocGenerationMixin(
+        base   = PrefixPreTrainedWrapper(model=model, tokenizer=tokenizer, prefix=prefix_a, add_special_tokens=True),
+        tune_r = PrefixPreTrainedWrapper(model=model, tokenizer=tokenizer, prefix=prefix_b, add_special_tokens=True),
+        w = 0
+    )
+    inputs = tokenizer(input_texts, return_tensors="pt", padding=True)
+    with torch.no_grad():
+        outputs = eft_model.generate(
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+            **generate_kwargs
+        )
+    outputs_a_ = outputs[:, -generate_kwargs["max_new_tokens"]:]
+
+    eft_model = EFTPosthocGenerationMixin(
+        base   = PrefixPreTrainedWrapper(model=model, tokenizer=tokenizer, prefix=prefix_a, add_special_tokens=True),
+        tune_r = PrefixPreTrainedWrapper(model=model, tokenizer=tokenizer, prefix=prefix_b, add_special_tokens=True),
+        w = 1
+    )
+    inputs = tokenizer(input_texts, return_tensors="pt", padding=True)
+    with torch.no_grad():
+        outputs = eft_model.generate(
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+            **generate_kwargs
+        )
+    outputs_b_ = outputs[:, -generate_kwargs["max_new_tokens"]:]
+
+    assert (outputs_a_ == outputs_a).min().item() == True
+    assert (outputs_b_ == outputs_b).min().item() == True

@@ -3,3 +3,14 @@
 # Example:
 # meta-llama/Meta-Llama-3-8B-Instruct: ~/models/Meta-Llama-3-8B-Instruct
 # meta-llama/Meta-Llama-3-70B-Instruct: ~/models//Meta-Llama-3-70B-Instruct
+
+# TODO: delete the following for public version
+# lm
+meta-llama/Meta-Llama-3-8B-Instruct: /mnt/petrelfs/share_data_old/llama3_hf/Meta-Llama-3-8B-Instruct
+meta-llama/Meta-Llama-3-70B-Instruct: /mnt/petrelfs/share_data_old/llama3_hf/Meta-Llama-3-70B-Instruct
+meta-llama/Llama-2-70b-chat-hf: /mnt/hwfile/llm-safety/models/Llama-2-70b-chat-hf
+
+# rm
+Nexusflow/Starling-RM-34B: /mnt/petrelfs/share_data_old/zhouzhanhui/Nexusflow/Starling-RM-34B
+01-ai/Yi-34B-Chat: /mnt/petrelfs/share_data_old/zhouzhanhui/01-ai/Yi-34B-Chat
+openbmb/UltraRM-13b: /mnt/hwfile/llm-safety/models/UltraRM-13b

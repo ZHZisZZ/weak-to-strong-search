@@ -45,7 +45,7 @@ def get_zephyr_scorer() -> ImplicitValueScorer:
         "HuggingFaceH4/mistral-7b-sft-beta", torch_dtype=torch.bfloat16, device_map="auto")
     tokenizer = AutoTokenizer.from_pretrained("HuggingFaceH4/zephyr-7b-beta")
     tokenizer.pad_token = tokenizer.eos_token
-    tokenizer.padding_side = "left"
+    tokenizer.padding_side = "right"
     prompt_template = tokenizer.apply_chat_template(
         [
             {"role": "system", "content": ""},

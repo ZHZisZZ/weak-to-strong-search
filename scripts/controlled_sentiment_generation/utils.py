@@ -29,7 +29,7 @@ def get_scorer(
     )
     tokenizer = AutoTokenizer.from_pretrained(get_local_model_path("lvwerra/gpt2-imdb"))
     tokenizer.pad_token = tokenizer.eos_token
-    tokenizer.padding_side = "left"
+    tokenizer.padding_side = "right"
     implicit_value_scorer = ImplicitValueScorer(
         model=model,
         ref_model=ref_model,

@@ -93,8 +93,10 @@ class PrefixPreTrainedWrapper(GenerationMixin):
         return model_outputs
 
 
+#-----------------------------------------------------------------------------#
+#--------------------------------- Unit Test ---------------------------------#
+#-----------------------------------------------------------------------------#
 if __name__ == "__main__":
-    # unit test
     import torch
     from transformers import AutoTokenizer, AutoModelForCausalLM
 
@@ -137,3 +139,4 @@ if __name__ == "__main__":
         )
     outputs_b = outputs[:, -generate_kwargs["max_new_tokens"]:]
     assert (outputs_a == outputs_b).min().item() == True
+    print("pass")

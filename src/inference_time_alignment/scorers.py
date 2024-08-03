@@ -3,7 +3,6 @@ from typing import Text, List, Dict, Optional
 from abc import ABC, abstractclassmethod
 
 import torch
-from accelerate import Accelerator
 from transformers import PreTrainedTokenizerBase, PreTrainedModel
 
 from src.inference_time_alignment.utils import (
@@ -12,9 +11,6 @@ from src.inference_time_alignment.utils import (
     get_batch_logps,
     prepare_input
 )
-
-
-DEFAULT_PROMPT_TEMPLATE = "{raw_prompt}"
 
 
 @dataclass
@@ -37,8 +33,8 @@ class ImplicitValueScorer(BaseScorer):
     ref_model: PreTrainedModel
     tokenizer: PreTrainedTokenizerBase
     add_special_tokens: Optional[bool] = False
-    model_prompt_template: Optional[str] = DEFAULT_PROMPT_TEMPLATE
-    ref_model_prompt_template: Optional[str] = DEFAULT_PROMPT_TEMPLATE
+    model_prompt_template: Optional[str] = "{raw_prompt}"
+    ref_model_prompt_template: Optional[str] = "{raw_prompt}"
     raw_prompt: Optional[str] = None
 
     def set_raw_prompt(self, raw_prompt):
@@ -84,36 +80,57 @@ class ImplicitValueScorer(BaseScorer):
         return get_batch_logps(all_logits, batch["labels"])
 
 
+#-----------------------------------------------------------------------------#
+#--------------------------------- Unit Test ---------------------------------#
+#-----------------------------------------------------------------------------#
 if __name__ == "__main__":
     from transformers import AutoModelForCausalLM, AutoTokenizer
-    from accelerate import Accelerator
 
     model = AutoModelForCausalLM.from_pretrained(
-        "/mnt/hwfile/llm-safety/models/gpt2-imdb-dpo",
-        torch_dtype=torch.bfloat16,
-        device_map={"": Accelerator().local_process_index},
+        "HuggingFaceH4/zephyr-7b-beta",
+        # torch_dtype=torch.bfloat16,
+        device_map="auto",
     )
-
     ref_model = AutoModelForCausalLM.from_pretrained(
-        "/mnt/hwfile/llm-safety/models/gpt2-imdb",
-        torch_dtype=torch.bfloat16,
-        device_map={"": Accelerator().local_process_index},
+        "HuggingFaceH4/mistral-7b-sft-beta",
+        # torch_dtype=torch.bfloat16,
+        device_map="auto",
     )
-
-    tokenizer = AutoTokenizer.from_pretrained("/mnt/hwfile/llm-safety/models/gpt2-imdb-dpo")
+    tokenizer = AutoTokenizer.from_pretrained("HuggingFaceH4/zephyr-7b-beta")
     tokenizer.pad_token = tokenizer.eos_token
-    tokenizer.padding_side = "right"
-
-    implicit_reward = ImplicitValueScorer(
+    # tokenizer.padding_side = "left"
+    prompt_template = tokenizer.apply_chat_template(
+        [
+            {"role": "system", "content": ""},
+            {"role": "user",   "content": "{raw_prompt}"},
+        ],
+        tokenize=False, 
+        add_generation_prompt=True
+    )
+    scorer = ImplicitValueScorer(
         model=model,
         ref_model=ref_model,
         tokenizer=tokenizer,
+        model_prompt_template=prompt_template,
+        ref_model_prompt_template=prompt_template,
     )
 
-    implicit_reward.set_raw_prompt("I think this movie is ")
+    scorer.set_raw_prompt("This is the worst sequel")
 
-    result = implicit_reward(
-        ScorerInput(response=[" interesting", " boring"], eos=[True, True])
-    )
+    response = [
+        " in the franchise's history.",
+        " on record. Despite high expectations set by its predecessor, the plot fell flat, and the characters lacked the depth and charm that made ", 
+    ]
+    eos = [True, False]
 
-    print(result)
+    for padding_side in ["right", "left"]:
+        scorer.tokenizer.padding_side = padding_side
+
+        score = scorer(ScorerInput(response=response, eos=eos))
+
+        for r, e, s in zip(response, eos, score):
+            score_ = scorer(ScorerInput(response=[r], eos=[e]))
+            assert torch.allclose(s, score_)
+
+    print("pass")
+

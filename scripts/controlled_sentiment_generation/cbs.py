@@ -80,7 +80,10 @@ tokenizer = AutoTokenizer.from_pretrained(get_local_model_path(script_args.model
 cbs_model = CBSPosthocGenerationMixin(base, tokenizer)
 # get scorer
 print("loading scorer...")
-scorer = get_scorer()
+scorer = get_scorer(
+    load_in_4bit=script_args.load_in_4bit,
+    use_flash_attention_2=script_args.use_flash_attention_2,
+)
 
 #-----------------------------------------------------------------------------#
 #---------------------------------- search -----------------------------------#

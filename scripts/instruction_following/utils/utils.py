@@ -89,7 +89,7 @@ def get_scorer(
 
     tokenizer = AutoTokenizer.from_pretrained(get_local_model_path(tuned_name))
     tokenizer.pad_token = tokenizer.eos_token
-    tokenizer.padding_side = "left"
+    tokenizer.padding_side = "right"
     
     implicit_value_scorer = ImplicitValueScorer(
         model=tuned_model,

@@ -1,5 +1,3 @@
-<!-- TODO: change `weak-to-strong-search` ot `weak-to-strong-search` -->
-
 # Weak-to-Strong Search
 
 Code release for [Weak-to-Strong Search: Align Large Language Models via Searching over Small Language Models](https://arxiv.org/abs/2405.19262).
